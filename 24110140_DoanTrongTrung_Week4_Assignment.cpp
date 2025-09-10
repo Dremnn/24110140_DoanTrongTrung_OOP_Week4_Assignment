@@ -188,6 +188,135 @@ public:
         cout << "Patient ID: " << patientID << endl;
         cout << "Doctor ID: " << doctorID << endl;
     }
+
+    void reschedule(const string& newDate , const string& newTime) {
+        if (status == SCHEDULED) {
+            date = newDate;
+            time = newTime;
+            cout << "Appointment rescheduled to: " << newDate << " at " << newTime << endl;
+        } else {
+            cout << "Cannot reschedule. Current status: " << getStatusString() << endl;
+
+        }
+    }
+};
+
+// Medicine class
+class Medicine {
+private:
+    int medicineID;
+    string name;
+    string description;
+    double price;
+    int stockQuantity;
+    string expiryDate;
+    string manufacturer;
+
+public:
+    Medicine(int id, string n, string desc, double p, int stock, string exp, string manu)
+        : medicineID(id), name(n), description(desc), price(p),
+          stockQuantity(stock), expiryDate(exp), manufacturer(manu) {}
+
+    bool isExpired(string currentDate) {
+        return expiryDate < currentDate;
+    }
+
+    bool checkStock(int quantity) {
+        return stockQuantity >= quantity;
+    }
+
+    void updateStock(int quantity) {
+        if (quantity <= stockQuantity) stockQuantity -= quantity;
+    }
+
+    void prescribe() {
+        cout << "Prescribed: " << name << " - " << description << endl;
+    }
+
+    double getPrice() const { return price; }
+    string getName() const { return name; }
+};
+
+// Prescription class
+class Prescription {
+private:
+    int prescriptionID;
+    int patientID;
+    int doctorID;
+    vector<Medicine> medicines;
+    string prescriptionDate;
+    string instructions;
+
+public:
+    Prescription(int prid, int pid, int did, string date, string instr)
+        : prescriptionID(prid), patientID(pid), doctorID(did), prescriptionDate(date), instructions(instr) {}
+
+    void addMedicine(const Medicine& med) {
+        medicines.push_back(med);
+    }
+
+    double calculateTotalCost() const {
+        double total = 0;
+        for (const auto& med : medicines) {
+            total += med.getPrice();
+        }
+        return total;
+    }
+
+    void printPrescription() const {
+        cout << "Prescription ID: " << prescriptionID << endl;
+        cout << "Patient ID: " << patientID << endl;
+        cout << "Doctor ID: " << doctorID << endl;
+        cout << "Date: " << prescriptionDate << endl;
+        cout << "Instructions: " << instructions << endl;
+        cout << "Medicines:" << endl;
+        for (const auto& med : medicines) {
+            cout << "- " << med.getName() << " ($" << med.getPrice() << ")" << endl;
+        }
+    }
+
+    int getPrescriptionID() const {
+    return prescriptionID;
+    }   
+
+    int getPatientID() const {
+        return patientID;
+    }
+
+};
+
+// Bill/Invoice Class
+class Bill {
+private:
+    int billID;
+    int patientID;
+    double consultationFee;
+    double medicationCost;
+    double totalAmount;
+    string billDate;
+    bool isPaid;
+
+public:
+    Bill(int bid, int pid, double fee, double medCost, const string& date)
+        : billID(bid), patientID(pid),
+          consultationFee(fee), medicationCost(medCost),
+          billDate(date), isPaid(false) {
+        totalAmount = consultationFee + medicationCost;
+    }
+
+    void processPayment() {
+        isPaid = true;
+        cout << "Payment processed for Bill ID: " << billID << endl;
+    }
+
+    void printBill() const {
+        cout << "Bill ID: " << billID << "\nPatient ID: " << patientID
+             << "\nConsultation Fee: $" << consultationFee
+             << "\nMedication Cost: $" << medicationCost
+             << "\nTotal Amount: $" << totalAmount
+             << "\nBill Date: " << billDate
+             << "\nStatus: " << (isPaid ? "Paid" : "Unpaid") << endl;
+    }
 };
 
 // Initialize static member
@@ -199,6 +328,9 @@ private:
     vector<Patient*> patients;
     vector<Doctor> doctors;
     vector<Appointment> appointments;
+    vector<Medicine> medicineInventory;
+    vector<Prescription> prescriptions;
+    vector<Bill> bills;
 
 public:
     // Destructor to clean up dynamic memory
@@ -229,7 +361,63 @@ public:
         doctors.push_back(Doctor(name, id, specialty));
         cout << "Doctor added successfully. ID: " << id << endl;
     }
+
+    // Add medicine to inventory
+    void addMedicine(const Medicine& med) {
+        medicineInventory.push_back(med);
+        cout << "Medicine added: " << med.getName() << endl;
+    }
+
+    // Getter for medicine inventory
+    const vector<Medicine>& getMedicineInventory() const {
+        return medicineInventory;
+    }
     
+    // Create prescription
+    void createPrescription(int patientID, int doctorID, const string& date, const string& instructions, const vector<int>& medicineIDs) {
+        if (patientID < 1 || patientID > static_cast<int>(patients.size())) {
+            cout << "Error: Invalid patient ID." << endl;
+            return;
+        }
+        if (doctorID < 1 || doctorID > static_cast<int>(doctors.size())) {
+            cout << "Error: Invalid doctor ID." << endl;
+            return;
+        }
+
+        int prescriptionID = prescriptions.size() + 1;
+
+        Prescription p(prescriptionID, patientID, doctorID, date, instructions);
+
+        for (int id : medicineIDs) {
+            if (id >= 1 && id <= static_cast<int>(medicineInventory.size())) {
+                p.addMedicine(medicineInventory[id - 1]);
+            } else {
+                cout << "Invalid medicine ID: " << id << endl;
+            }
+        }
+
+        prescriptions.push_back(p);
+        cout << "Prescription created. ID: " << prescriptionID << " for Patient ID: " << patientID << endl;
+    }
+
+    // Generate bill
+    void generateBill(int prescriptionID, double consultationFee, const string& billDate) {
+        for (const auto& p : prescriptions) {
+            if (p.getPrescriptionID() == prescriptionID) {
+                int patientID = p.getPatientID();
+                double medicationCost = p.calculateTotalCost();
+                int billID = bills.size() + 1;
+
+                Bill b(billID, patientID, consultationFee, medicationCost, billDate);
+                bills.push_back(b);
+
+                cout << "Bill generated successfully. Bill ID: " << billID << endl;
+                return;
+            }
+        }
+        cout << "Error: Prescription ID not found." << endl;
+    }
+
     // Schedule appointment
     bool scheduleAppointment(const string& date, const string& time,
                            const string& reason, int patientID, int doctorID) {
@@ -298,7 +486,25 @@ public:
         cout << "Error: Appointment ID not found." << endl;
         return false;
     }
-    
+
+    // Reschedule appointment
+    bool rescheduleAppointment(int appointmentID, const string& newDate, const string& newTime) {
+        for (auto& appointment : appointments) {
+            if (appointment.getAppointmentID() == appointmentID) {
+                if (appointment.getStatus() == Appointment::SCHEDULED) {
+                    appointment.reschedule(newDate, newTime);
+                    cout << "Appointment " << appointmentID << " rescheduled successfully." << endl;
+                    return true;
+                } else {
+                    cout << "Cannot reschedule. Appointment is " << appointment.getStatusString() << "." << endl;
+                    return false;
+                }
+            }
+        }
+        cout << "Error: Appointment ID not found." << endl;
+        return false;
+    }
+
     // Display all patients
     void displayAllPatients() const {
         cout << "\n=== ALL PATIENTS ===" << endl;
@@ -340,6 +546,46 @@ public:
             appointments[i].displayInfo();
         }
     }
+
+    // Display all medicines
+    void displayAllMedicines() const {
+        cout << "\n=== MEDICINE INVENTORY ===" << endl;
+        if (medicineInventory.empty()) {
+            cout << "No medicines available." << endl;
+            return;
+        }
+        for (const auto& med : medicineInventory) {
+            cout << "- " << med.getName() << " | Price: $" << med.getPrice() << endl;
+        }
+    }
+
+    // Display all prescriptions
+    void displayAllPrescriptions() const {
+        cout << "\n=== ALL PRESCRIPTIONS ===" << endl;
+
+        if (prescriptions.empty()) {
+            cout << "No prescriptions available." << endl;
+            return;
+        }
+
+        for (size_t i = 0; i < prescriptions.size(); ++i) {
+            cout << "\n--- Prescription " << (i + 1) << " ---" << endl;
+            prescriptions[i].printPrescription();
+        }
+    }
+
+    // Display all bills
+    void displayAllBills() const {
+        cout << "\n=== BILLS ===" << endl;
+        if (bills.empty()) {
+            cout << "No bills available." << endl;
+            return;
+        }
+        for (const auto& b : bills) {
+            b.printBill();
+            cout << "------------------------" << endl;
+        }
+    }
     
     // Find patient by ID
     Patient* findPatient(int patientID) {
@@ -358,113 +604,215 @@ public:
     }
 };
 
-// Test functions
-void runBasicTests(ClinicManagementSystem& clinic) {
-    cout << "\n" << string(50, '=') << endl;
-    cout << "RUNNING BASIC FUNCTIONALITY TESTS" << endl;
-    cout << string(50, '=') << endl;
-    
-    // Test 1: Add patients
-    cout << "\nTest 1: Adding Patients" << endl;
-    cout << string(25, '-') << endl;
-    clinic.addPatient("John Smith", 35);
-    clinic.addChronicPatient("Mary Johnson", 62, "Type 2 Diabetes", "2024-01-15");
-    clinic.addPatient("Bob Wilson", 28);
-    
-    // Test 2: Add doctors
-    cout << "\nTest 2: Adding Doctors" << endl;
-    cout << string(25, '-') << endl;
-    clinic.addDoctor("Dr. Sarah Miller", "General Medicine");
-    clinic.addDoctor("Dr. Michael Brown", "Endocrinology");
-    
-    // Test 3: Schedule appointments
-    cout << "\nTest 3: Scheduling Appointments" << endl;
-    cout << string(25, '-') << endl;
-    clinic.scheduleAppointment("2024-03-15", "10:00 AM", "Annual Checkup", 1, 1);
-    clinic.scheduleAppointment("2024-03-16", "2:00 PM", "Diabetes Management", 2, 2);
-    clinic.scheduleAppointment("2024-03-17", "11:30 AM", "Follow-up Visit", 3, 1);
-    
-    // Test 4: Complete an appointment
-    cout << "\nTest 4: Completing Appointment" << endl;
-    cout << string(25, '-') << endl;
-    clinic.completeAppointment(1, "Annual checkup completed. Patient in good health. Recommended annual screening.");
-    
-    // Test 5: Cancel an appointment
-    cout << "\nTest 5: Canceling Appointment" << endl;
-    cout << string(25, '-') << endl;
-    clinic.cancelAppointment(3);
+// Function to initialize sample data
+void initializeSampleData(ClinicManagementSystem& cms) {
+    // Add doctors
+    cms.addDoctor("Dr. Nguyen Van Binh", "Cardiology");
+    cms.addDoctor("Dr. Tran Thi Mai", "Dermatology");
+    cms.addDoctor("Dr. Le Quang Huy", "Pediatrics");
+
+    // Add patients
+    cms.addPatient("Doan Trong Trung", 22);
+    cms.addPatient("Nguyen Thi Lan", 35);
+
+    // Add chronic patients
+    cms.addChronicPatient("Pham Van Hoa", 60, "Diabetes", "2025-08-10");
+    cms.addChronicPatient("Le Thi Huong", 55, "Hypertension", "2025-07-20");
+
+    // Add medicines
+    cms.addMedicine(Medicine(0, "Paracetamol", "Pain relief", 2.5, 100, "2026-01-01", "PharmaCo"));
+    cms.addMedicine(Medicine(1, "Amoxicillin", "Antibiotic", 5.0, 50, "2025-12-31", "HealthMed"));
+    cms.addMedicine(Medicine(2, "Metformin", "Diabetes control", 3.2, 80, "2026-03-15", "Glucare"));
+    cms.addMedicine(Medicine(3, "Losartan", "Blood pressure", 4.5, 60, "2026-02-10", "CardioPharm"));
+
+    // Create appointments
+    cms.scheduleAppointment("2025-09-15", "09:00", "General Checkup", 1, 1);
+    cms.scheduleAppointment("2025-09-16", "10:30", "Skin Rash", 2, 2);
+    cms.scheduleAppointment("2025-09-17", "08:00", "Diabetes Follow-up", 3, 1);
+    cms.scheduleAppointment("2025-09-18", "11:00", "Blood Pressure Review", 4, 3);
+
+    // Create prescriptions
+    cms.createPrescription(1, 1, "2025-09-15", "Take after meals", {1});
+    cms.createPrescription(1, 2, "2025-09-17", "Take twice daily", {3});
+    cms.createPrescription(3, 2, "2025-09-18", "Take once daily", {4});
+
+    // Generate bills 
+    cms.generateBill(1, 20.0, "2025-09-15");
+    cms.generateBill(2, 25.0, "2025-09-17");
+    cms.generateBill(3, 30.0, "2025-09-18");
+
 }
 
-void runInheritanceTests(ClinicManagementSystem& clinic) {
-    cout << "\n" << string(50, '=') << endl;
-    cout << "RUNNING INHERITANCE DEMONSTRATION TESTS" << endl;
-    cout << string(50, '=') << endl;
-    
-    cout << "\nDemonstrating Polymorphism and Method Override:" << endl;
-    cout << string(45, '-') << endl;
-    
-    Patient* regularPatient = clinic.findPatient(1);
-    Patient* chronicPatient = clinic.findPatient(2);
-    
-    if (regularPatient && chronicPatient) {
-        cout << "\nRegular Patient Appointment Frequency: " 
-                  << regularPatient->getAppointmentFrequency() << endl;
-        cout << "Chronic Patient Appointment Frequency: " 
-                  << chronicPatient->getAppointmentFrequency() << endl;
-        
-        cout << "\nPatient Type Demonstration:" << endl;
-        cout << "Patient 1 Type: " << regularPatient->getPatientType() << endl;
-        cout << "Patient 2 Type: " << chronicPatient->getPatientType() << endl;
-    }
-}
+// Simple menu-driven interface for testing
+void runMenu(ClinicManagementSystem& cms) {
+    int choice;
 
-void runErrorHandlingTests(ClinicManagementSystem& clinic) {
-    cout << "\n" << string(50, '=') << endl;
-    cout << "RUNNING ERROR HANDLING TESTS" << endl;
-    cout << string(50, '=') << endl;
-    
-    cout << "\nTest: Invalid Patient ID" << endl;
-    cout << string(25, '-') << endl;
-    clinic.scheduleAppointment("2024-03-20", "9:00 AM", "Checkup", 999, 1);
-    
-    cout << "\nTest: Invalid Doctor ID" << endl;
-    cout << string(25, '-') << endl;
-    clinic.scheduleAppointment("2024-03-20", "9:00 AM", "Checkup", 1, 999);
-    
-    cout << "\nTest: Invalid Appointment ID" << endl;
-    cout << string(25, '-') << endl;
-    clinic.cancelAppointment(999);
-    
-    cout << "\nTest: Double Cancellation" << endl;
-    cout << string(25, '-') << endl;
-    clinic.cancelAppointment(3); // Already canceled
+    do {
+        cout << "\n=== CLINIC MANAGEMENT MENU ===" << endl;
+        cout << "1.  Add Patient\n2.  Add Doctor\n3.  Schedule Appointment\n4.  Reschedule Appointment\n";
+        cout << "5.  Complete Appointment\n6.  Cancel Appointment\n7.  Create Prescription\n8.  Generate Bill\n";
+        cout << "9.  Show All Medicines\n10. Show All Appointments\n";
+        cout << "11. Find Patient by ID\n12. Find Doctor by ID\n";
+        cout << "13. Show All Patients\n14. Show All Doctors\n15. Show All Prescriptions\n16. Show All Bills\n";
+        cout << "0.  Exit\n";
+        cout << "Enter your choice: ";
+        cin >> choice;
+
+        switch (choice) {
+            case 1: {
+                int type;
+                cout << "Choose patient type:\n1. Regular\n2. Chronic\nEnter choice: ";
+                cin >> type;
+
+                string name;
+                int age;
+                cout << "Enter patient name: ";
+                cin.ignore(); getline(cin, name);
+                cout << "Enter age: ";
+                cin >> age;
+
+                if (type == 1) {
+                    cms.addPatient(name, age);
+                } else if (type == 2) {
+                    string condition, lastCheckup;
+                    cout << "Enter chronic condition: ";
+                    cin.ignore(); getline(cin, condition);
+                    cout << "Enter last checkup date (YYYY-MM-DD): ";
+                    getline(cin, lastCheckup);
+                    cms.addChronicPatient(name, age, condition, lastCheckup);
+                } else {
+                    cout << "Invalid patient type selected." << endl;
+                }
+                break;
+            }
+            case 2: {
+                string name, specialty;
+                cout << "Enter doctor name: ";
+                cin.ignore(); getline(cin, name);
+                cout << "Enter specialty: ";
+                getline(cin, specialty);
+                cms.addDoctor(name, specialty);
+                break;
+            }
+            case 3: {
+                string date, time, reason;
+                int pid, did;
+                cout << "Enter date (YYYY-MM-DD): "; cin >> date;
+                cout << "Enter time (HH:MM): "; cin >> time;
+                cout << "Enter reason: "; cin.ignore(); getline(cin, reason);
+                cout << "Enter patient ID: "; cin >> pid;
+                cout << "Enter doctor ID: "; cin >> did;
+                cms.scheduleAppointment(date, time, reason, pid, did);
+                break;
+            }
+            case 4: {
+                int aid;
+                string newDate, newTime;
+                cout << "Enter appointment ID: "; cin >> aid;
+                cout << "New date (YYYY-MM-DD): "; cin >> newDate;
+                cout << "New time (HH:MM): "; cin >> newTime;
+                cms.rescheduleAppointment(aid, newDate, newTime);
+                break;
+            }
+            case 5: {
+                int aid;
+                string record;
+                cout << "Enter appointment ID: "; cin >> aid;
+                cout << "Treatment record: "; cin.ignore(); getline(cin, record);
+                cms.completeAppointment(aid, record);
+                break;
+            }
+            case 6: {
+                int aid;
+                cout << "Enter appointment ID: "; cin >> aid;
+                cms.cancelAppointment(aid);
+                break;
+            }
+            case 7: {
+                int pid, did;
+                string date, instructions;
+                vector<int> medIDs;
+
+                cout << "Enter patient ID: "; cin >> pid;
+                cout << "Enter doctor ID: "; cin >> did;
+                cout << "Enter prescription date (YYYY-MM-DD): "; cin >> date;
+                cout << "Enter instructions: "; cin.ignore(); getline(cin, instructions);
+
+                // Display available medicines
+                cout << "\n=== AVAILABLE MEDICINES ===" << endl;
+                const vector<Medicine>& meds = cms.getMedicineInventory(); // Bạn cần thêm getter này
+                for (size_t i = 0; i < meds.size(); ++i) {
+                    cout << "ID: " << i + 1 << " | " << meds[i].getName() << " - $" << meds[i].getPrice() << endl;
+                }
+
+                // Select medicines
+                cout << "\nEnter medicine IDs to prescribe (end with -1): ";
+                int id;
+                while (cin >> id && id != -1) {
+                    medIDs.push_back(id);
+                }
+                cms.createPrescription(pid, did, date, instructions, medIDs);
+                break;
+            }
+            case 8: {
+                int presID;
+                double fee;
+                string date;
+
+                cout << "Enter Prescription ID: ";
+                cin >> presID;
+
+                cout << "Enter Consultation Fee: $";
+                cin >> fee;
+
+                cout << "Enter Bill Date (YYYY-MM-DD): ";
+                cin >> date;
+
+                cms.generateBill(presID, fee, date);
+                break;
+            }
+            case 9: cms.displayAllMedicines(); break;
+            case 10: cms.displayAllAppointments(); break;
+            case 11: {
+                int pid;
+                cout << "Enter patient ID to find: ";
+                cin >> pid;
+                Patient* p = cms.findPatient(pid);
+                if (p) {
+                    cout << "\n=== PATIENT FOUND ===" << endl;
+                    p->displayInfo();
+                } else {
+                    cout << "Patient not found." << endl;
+                }
+                break;
+            }
+            case 12: {
+                int did;
+                cout << "Enter doctor ID to find: ";
+                cin >> did;
+                Doctor* d = cms.findDoctor(did);
+                if (d) {
+                    cout << "\n=== DOCTOR FOUND ===" << endl;
+                    d->displayInfo();
+                } else {
+                    cout << "Doctor not found." << endl;
+                }
+                break;
+            }
+            case 13: cms.displayAllPatients(); break;
+            case 14: cms.displayAllDoctors(); break;
+            case 15: cms.displayAllPrescriptions(); break;
+            case 16: cms.displayAllBills(); break;
+            case 0: cout << "Exiting system. Goodbye!" << endl; break;
+            default: cout << "Invalid choice. Try again." << endl;
+        }
+
+    } while (choice != 0);
 }
 
 int main() {
-    cout << string(60, '=') << endl;
-    cout << "SMALL CLINIC MANAGEMENT SYSTEM" << endl;
-    cout << "Object-Oriented Programming Demonstration" << endl;
-    cout << string(60, '=') << endl;
-    
-    ClinicManagementSystem clinic;
-    
-    // Run comprehensive tests
-    runBasicTests(clinic);
-    runInheritanceTests(clinic);
-    runErrorHandlingTests(clinic);
-    
-    // Display final system state
-    cout << "\n" << string(50, '=') << endl;
-    cout << "FINAL SYSTEM STATE" << endl;
-    cout << string(50, '=') << endl;
-    
-    clinic.displayAllPatients();
-    clinic.displayAllDoctors();
-    clinic.displayAllAppointments();
-    
-    cout << "\n" << string(60, '=') << endl;
-    cout << "SYSTEM DEMONSTRATION COMPLETED SUCCESSFULLY" << endl;
-    cout << string(60, '=') << endl;
-    
+    ClinicManagementSystem cms;
+    initializeSampleData(cms);
+    runMenu(cms);             
     return 0;
 }
