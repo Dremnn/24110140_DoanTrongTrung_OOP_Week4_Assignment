@@ -213,28 +213,63 @@ private:
     string manufacturer;
 
 public:
-    Medicine(int id, string n, string desc, double p, int stock, string exp, string manu)
-        : medicineID(id), name(n), description(desc), price(p),
-          stockQuantity(stock), expiryDate(exp), manufacturer(manu) {}
+    Medicine(int id, const string& n, const string& desc, double p, int stock, 
+             const string& exp, const string& manu)
+        : medicineID(id), name(n), description(desc), manufacturer(manu) {
+        // Validation
+        if (p < 0) {
+            cout << "Warning: Negative price set to 0" << endl;
+            price = 0;
+        } else {
+            price = p;
+        }
+        
+        if (stock < 0) {
+            cout << "Warning: Negative stock set to 0" << endl;
+            stockQuantity = 0;
+        } else {
+            stockQuantity = stock;
+        }
+        
+        expiryDate = exp;
+    }
 
-    bool isExpired(string currentDate) {
+    // Getters
+    int getMedicineID() const { return medicineID; }
+    string getName() const { return name; }
+    string getDescription() const { return description; }
+    double getPrice() const { return price; }
+    int getStockQuantity() const { return stockQuantity; }
+    string getExpiryDate() const { return expiryDate; }
+    string getManufacturer() const { return manufacturer; }
+
+    // Methods với validation tốt hơn
+    bool isExpired(const string& currentDate) const {
         return expiryDate < currentDate;
     }
 
-    bool checkStock(int quantity) {
-        return stockQuantity >= quantity;
+    bool checkStock(int quantity) const {
+        return stockQuantity >= quantity && quantity > 0;
     }
 
-    void updateStock(int quantity) {
-        if (quantity <= stockQuantity) stockQuantity -= quantity;
+    bool updateStock(int quantity) {
+        if (quantity > 0 && quantity <= stockQuantity) {
+            stockQuantity -= quantity;
+            return true;
+        }
+        return false;
     }
 
-    void prescribe() {
+    void prescribe() const {
         cout << "Prescribed: " << name << " - " << description << endl;
     }
-
-    double getPrice() const { return price; }
-    string getName() const { return name; }
+    
+    // Display method
+    void displayInfo() const {
+        cout << "ID: " << medicineID << " | Name: " << name 
+             << " | Price: $" << price << " | Stock: " << stockQuantity 
+             << " | Expires: " << expiryDate << endl;
+    }
 };
 
 // Prescription class
@@ -374,7 +409,8 @@ public:
     }
     
     // Create prescription
-    void createPrescription(int patientID, int doctorID, const string& date, const string& instructions, const vector<int>& medicineIDs) {
+    void createPrescription(int patientID, int doctorID, const string& date, 
+                        const string& instructions, const vector<int>& medicineIDs) {
         if (patientID < 1 || patientID > static_cast<int>(patients.size())) {
             cout << "Error: Invalid patient ID." << endl;
             return;
@@ -385,19 +421,33 @@ public:
         }
 
         int prescriptionID = prescriptions.size() + 1;
-
         Prescription p(prescriptionID, patientID, doctorID, date, instructions);
 
+        bool hasValidMedicine = false;
         for (int id : medicineIDs) {
-            if (id >= 1 && id <= static_cast<int>(medicineInventory.size())) {
-                p.addMedicine(medicineInventory[id - 1]);
-            } else {
-                cout << "Invalid medicine ID: " << id << endl;
+            // Tìm medicine theo internal ID (không phải index)
+            bool found = false;
+            for (const auto& medicine : medicineInventory) {
+                if (medicine.getMedicineID() == id) {  // So sánh với internal ID
+                    p.addMedicine(medicine);
+                    hasValidMedicine = true;
+                    found = true;
+                    break;
+                }
+            }
+            
+            if (!found) {
+                cout << "Warning: Medicine ID " << id << " not found (ignored)" << endl;
             }
         }
 
-        prescriptions.push_back(p);
-        cout << "Prescription created. ID: " << prescriptionID << " for Patient ID: " << patientID << endl;
+        if (hasValidMedicine) {
+            prescriptions.push_back(p);
+            cout << "Prescription created successfully. ID: " << prescriptionID 
+                << " for Patient ID: " << patientID << endl;
+        } else {
+            cout << "Error: No valid medicines found. Prescription not created." << endl;
+        }
     }
 
     // Generate bill
@@ -554,8 +604,9 @@ public:
             cout << "No medicines available." << endl;
             return;
         }
-        for (const auto& med : medicineInventory) {
-            cout << "- " << med.getName() << " | Price: $" << med.getPrice() << endl;
+        for (size_t i = 0; i < medicineInventory.size(); ++i) {
+            cout << "ID: " << (i + 1) << " | ";
+            medicineInventory[i].displayInfo();
         }
     }
 
@@ -571,6 +622,7 @@ public:
         for (size_t i = 0; i < prescriptions.size(); ++i) {
             cout << "\n--- Prescription " << (i + 1) << " ---" << endl;
             prescriptions[i].printPrescription();
+            cout << "Total Cost: $" << prescriptions[i].calculateTotalCost() << endl;
         }
     }
 
@@ -619,11 +671,11 @@ void initializeSampleData(ClinicManagementSystem& cms) {
     cms.addChronicPatient("Pham Van Hoa", 60, "Diabetes", "2025-08-10");
     cms.addChronicPatient("Le Thi Huong", 55, "Hypertension", "2025-07-20");
 
-    // Add medicines
-    cms.addMedicine(Medicine(0, "Paracetamol", "Pain relief", 2.5, 100, "2026-01-01", "PharmaCo"));
-    cms.addMedicine(Medicine(1, "Amoxicillin", "Antibiotic", 5.0, 50, "2025-12-31", "HealthMed"));
-    cms.addMedicine(Medicine(2, "Metformin", "Diabetes control", 3.2, 80, "2026-03-15", "Glucare"));
-    cms.addMedicine(Medicine(3, "Losartan", "Blood pressure", 4.5, 60, "2026-02-10", "CardioPharm"));
+    // Add medicines với ID 1-4
+    cms.addMedicine(Medicine(1, "Paracetamol", "Pain relief", 2.5, 100, "2026-01-01", "PharmaCo"));
+    cms.addMedicine(Medicine(2, "Amoxicillin", "Antibiotic", 5.0, 50, "2025-12-31", "HealthMed"));
+    cms.addMedicine(Medicine(3, "Metformin", "Diabetes control", 3.2, 80, "2026-03-15", "Glucare"));
+    cms.addMedicine(Medicine(4, "Losartan", "Blood pressure", 4.5, 60, "2026-02-10", "CardioPharm"));
 
     // Create appointments
     cms.scheduleAppointment("2025-09-15", "09:00", "General Checkup", 1, 1);
@@ -631,16 +683,15 @@ void initializeSampleData(ClinicManagementSystem& cms) {
     cms.scheduleAppointment("2025-09-17", "08:00", "Diabetes Follow-up", 3, 1);
     cms.scheduleAppointment("2025-09-18", "11:00", "Blood Pressure Review", 4, 3);
 
-    // Create prescriptions
-    cms.createPrescription(1, 1, "2025-09-15", "Take after meals", {1});
-    cms.createPrescription(1, 2, "2025-09-17", "Take twice daily", {3});
-    cms.createPrescription(3, 2, "2025-09-18", "Take once daily", {4});
+    // Create prescriptions với đúng medicine IDs
+    cms.createPrescription(1, 1, "2025-09-15", "Take after meals", {2});      // Amoxicillin
+    cms.createPrescription(1, 2, "2025-09-17", "Take twice daily", {4});      // Losartan  
+    cms.createPrescription(3, 2, "2025-09-18", "Take once daily", {3});       // Metformin
 
     // Generate bills 
     cms.generateBill(1, 20.0, "2025-09-15");
     cms.generateBill(2, 25.0, "2025-09-17");
     cms.generateBill(3, 30.0, "2025-09-18");
-
 }
 
 // Simple menu-driven interface for testing
@@ -676,7 +727,8 @@ void runMenu(ClinicManagementSystem& cms) {
                 } else if (type == 2) {
                     string condition, lastCheckup;
                     cout << "Enter chronic condition: ";
-                    cin.ignore(); getline(cin, condition);
+                    cin.ignore(); // Chỉ cần ignore một lần sau cin >> age
+                    getline(cin, condition);
                     cout << "Enter last checkup date (YYYY-MM-DD): ";
                     getline(cin, lastCheckup);
                     cms.addChronicPatient(name, age, condition, lastCheckup);
@@ -738,11 +790,12 @@ void runMenu(ClinicManagementSystem& cms) {
                 cout << "Enter prescription date (YYYY-MM-DD): "; cin >> date;
                 cout << "Enter instructions: "; cin.ignore(); getline(cin, instructions);
 
-                // Display available medicines
+                // Hiển thị medicines với đúng ID
                 cout << "\n=== AVAILABLE MEDICINES ===" << endl;
-                const vector<Medicine>& meds = cms.getMedicineInventory(); // Bạn cần thêm getter này
-                for (size_t i = 0; i < meds.size(); ++i) {
-                    cout << "ID: " << i + 1 << " | " << meds[i].getName() << " - $" << meds[i].getPrice() << endl;
+                const vector<Medicine>& meds = cms.getMedicineInventory();
+                for (const auto& med : meds) {
+                    cout << "ID: " << med.getMedicineID() << " | " << med.getName() 
+                        << " - $" << med.getPrice() << endl;
                 }
 
                 // Select medicines
