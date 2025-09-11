@@ -1,272 +1,280 @@
-# Small Clinic Management System
+# Object-Oriented Programming Week 4 Assignment
+## Small Clinic Management System
 
-**Object-Oriented Programming Assignment using C++**
-
----
-
-## 📋 Project Overview
-
-This project implements a Small Clinic Management System designed to handle the core operations of a family clinic. The system demonstrates key Object-Oriented Programming (OOP) concepts including **classes**, **objects**, **inheritance**, **polymorphism**, and **encapsulation**.
-
-### 🎯 Key Features
-- Patient registration and management (regular and chronic patients)
-- Doctor registration with specialization tracking
-- Appointment scheduling, completion, and cancellation
-- Medical history tracking and updates
-- Inheritance-based patient classification with method overriding
-- Comprehensive error handling and input validation
-
-### 🏗️ System Architecture
-The system consists of 5 main classes that work together to provide a complete clinic management solution:
-- **Patient** (Base class)
-- **ChronicPatient** (Derived class - demonstrates inheritance)
-- **Doctor** (Medical staff management)
-- **Appointment** (Scheduling and status tracking)
-- **ClinicManagementSystem** (Main system controller)
+**Student Name:** Doan Trong Trung  
+**Student ID:** 24110140  
+**Assignment:** Week 4 - Inheritance and Class Design  
 
 ---
 
-## 🔍 Object-Oriented Analysis (OOA)
+## Step 1: Object-Oriented Analysis (OOA) Model
 
-### Step 1: Objects Identification
-From the clinic scenario, key objects were identified:
-- **Patient**: Individuals seeking medical care
-- **ChronicPatient**: Patients with ongoing medical conditions
-- **Doctor**: Medical professionals providing care
-- **Appointment**: Scheduled medical visits
-- **ClinicManagementSystem**: Main system coordinator
+### 1.1 Identify Objects (Nouns)
+From the Small Clinic Management System scenario, the key objects identified are:
+- **Patient** - individuals seeking medical care
+- **ChronicPatient** - patients with long-term medical conditions
+- **Doctor** - medical practitioners providing care
+- **Appointment** - scheduled meetings between patients and doctors
+- **Medicine** - pharmaceutical products used for treatment
+- **Prescription** - medical orders for specific treatments
+- **Bill** - financial records for services and medications
+- **ClinicManagementSystem** - overall system controller
 
-### Step 2: Attributes Analysis
-Each object contains specific data attributes:
+### 1.2 Identify Attributes (Descriptive Nouns)
+**Patient:**
+- name, patientID, age, medicalHistory
 
-**Patient Class:**
-- `name` (string) - Patient's full name
-- `patientID` (int) - Unique identifier
-- `age` (int) - Patient's age
-- `medicalHistory` (vector<string>) - Medical records
+**ChronicPatient:**
+- conditionType, lastCheckupDate (inherits Patient attributes)
 
-**ChronicPatient Class (inherits from Patient):**
-- `conditionType` (string) - Type of chronic condition
-- `lastCheckupDate` (string) - Date of last checkup
+**Doctor:**
+- name, doctorID, specialty, appointmentIDs
 
-**Doctor Class:**
-- `name`, `doctorID`, `specialty` - Basic information
-- `appointmentIDs` (vector<int>) - Assigned appointments
+**Appointment:**
+- appointmentID, date, time, reason, status, patientID, doctorID
 
-**Appointment Class:**
-- `appointmentID`, `date`, `time`, `reason` - Basic info
-- `status` (enum) - SCHEDULED/COMPLETED/CANCELED
-- `patientID`, `doctorID` - Relationships
+**Medicine:**
+- medicineID, name, description, price, stockQuantity, expiryDate, manufacturer
 
-### Step 3: Methods Analysis
-Key behaviors identified for each class:
+**Prescription:**
+- prescriptionID, patientID, doctorID, medicines, prescriptionDate, instructions
 
-**Patient Methods:**
-- Getters/Setters for all attributes
-- `addMedicalRecord()` - Add treatment records
-- `getAppointmentFrequency()` - Virtual method (overridable)
-- `getPatientType()` - Virtual method for classification
-- `displayInfo()` - Virtual method for information display
+**Bill:**
+- billID, patientID, consultationFee, medicationCost, totalAmount, billDate, isPaid
 
-**ChronicPatient Override Methods:**
-- `getAppointmentFrequency()` → "Every 3 months" (vs "As needed")
-- `getPatientType()` → "Chronic Patient" (vs "Regular Patient")
-- `displayInfo()` → Includes chronic condition details
+### 1.3 Identify Methods (Verbs)
+**Patient:**
+- addMedicalRecord(), displayInfo(), getAppointmentFrequency(), getPatientType()
 
-### Step 4: Inheritance Relationships
+**ChronicPatient:**
+- displayInfo() [overridden], getAppointmentFrequency() [overridden], setLastCheckupDate()
+
+**Doctor:**
+- assignAppointment(), removeAppointment(), displayInfo()
+
+**Appointment:**
+- reschedule(), setStatus(), displayInfo(), getStatusString()
+
+**Medicine:**
+- isExpired(), checkStock(), updateStock(), prescribe()
+
+**Prescription:**
+- addMedicine(), calculateTotalCost(), printPrescription()
+
+**Bill:**
+- processPayment(), printBill()
+
+**ClinicManagementSystem:**
+- addPatient(), addDoctor(), scheduleAppointment(), cancelAppointment(), displayAllPatients()
+
+### 1.4 Identify Inheritance Relationships
 **Primary Inheritance:**
-```
-Patient (Base Class)
-    ↓
-ChronicPatient (Derived Class)
-```
+- `ChronicPatient` inherits from `Patient` (IS-A relationship)
+  - ChronicPatient IS-A Patient with additional chronic condition management
+  - Overrides virtual methods for specialized behavior
 
-**Inheritance Benefits:**
-- **Code Reuse**: ChronicPatient inherits all Patient functionality
-- **Polymorphism**: Patient pointers can reference both types
-- **Method Override**: Specialized behavior for chronic patients
-- **Extensibility**: Easy to add new patient types
+**Rationale for Inheritance Design:**
+- Used inheritance only where meaningful specialization exists
+- ChronicPatient extends Patient with chronic-specific attributes and behaviors
+- Other classes use composition/association rather than forced inheritance
 
 ---
 
-## 💻 Implementation Details
+## Step 2: Class Design and Implementation
 
-### Class Design Architecture
-
-#### 1. Inheritance Implementation
+### Inheritance Implementation
 ```cpp
 class Patient {
-protected:  // Allows access by derived classes
+protected:
     string name;
     int patientID;
     int age;
     vector<string> medicalHistory;
-    
+
 public:
-    virtual ~Patient() {}  // Virtual destructor
-    virtual string getAppointmentFrequency() const;  // Overridable
-    virtual string getPatientType() const;           // Overridable
-    virtual void displayInfo() const;                // Overridable
+    Patient(const string& name, int id, int age) 
+        : name(name), patientID(id), age(age) {}
+    
+    virtual ~Patient() {} // Virtual destructor for proper inheritance
+    
+    virtual string getAppointmentFrequency() const {
+        return "As needed";
+    }
+    
+    virtual string getPatientType() const {
+        return "Regular Patient";
+    }
+    
+    virtual void displayInfo() const { /* implementation */ }
 };
 
-class ChronicPatient : public Patient {  // Public inheritance
+class ChronicPatient : public Patient {
 private:
     string conditionType;
     string lastCheckupDate;
-    
+
 public:
-    // Override virtual methods
-    string getAppointmentFrequency() const override;
-    string getPatientType() const override;
-    void displayInfo() const override;
+    ChronicPatient(const string& name, int id, int age, 
+                   const string& condition, const string& lastCheckup)
+        : Patient(name, id, age), conditionType(condition), 
+          lastCheckupDate(lastCheckup) {}
+    
+    // Override virtual methods for specialized behavior
+    string getAppointmentFrequency() const override {
+        return "Every 3 months (chronic condition)";
+    }
+    
+    string getPatientType() const override {
+        return "Chronic Patient";
+    }
+    
+    void displayInfo() const override {
+        Patient::displayInfo(); // Call base class method
+        cout << "Chronic Condition: " << conditionType << endl;
+        cout << "Last Checkup: " << lastCheckupDate << endl;
+    }
 };
 ```
 
-#### 2. Key OOP Concepts Demonstrated
+### Key Design Features
+- **Virtual Functions**: Enable polymorphic behavior for different patient types
+- **Constructor Chaining**: Derived class properly initializes base class using initialization list
+- **Method Overriding**: ChronicPatient overrides virtual methods for specialized behavior
+- **Encapsulation**: Private/protected access modifiers control data access
+- **Memory Management**: Virtual destructor ensures proper cleanup in inheritance hierarchy
 
-**Encapsulation:**
-- Private attributes with public method interfaces
-- Data hiding and controlled access
-
-**Inheritance:**
-- Single inheritance: ChronicPatient extends Patient
-- Method overriding for specialized behavior
-
-**Polymorphism:**
-- Virtual methods enable runtime method resolution
-- Patient pointers can reference both base and derived objects
-
-**Abstraction:**
-- Clean interfaces hide implementation complexity
-- High-level operations through method calls
-
-### 3. Advanced Features
-- **STL Containers**: Dynamic collections using vector<>
-- **Static Members**: Automatic appointment ID generation
-- **Enumerations**: Type-safe status tracking
-- **Memory Management**: Proper destructor cleanup
-- **Error Handling**: Input validation and graceful error messages
+### System Architecture
+The system implements 7 classes total:
+1. **Patient** (base class)
+2. **ChronicPatient** (derived class) 
+3. **Doctor** - manages medical practitioners
+4. **Appointment** - handles scheduling with enum status system
+5. **Medicine** - inventory management with stock control
+6. **Prescription** - links patients, doctors, and medicines
+7. **Bill** - financial management with automatic cost calculation
 
 ---
 
-## 🧪 Testing and Results
+## Step 3: Testing and Results
 
-### Test Categories
+### Test Case 1: Inheritance and Polymorphism
+**Objective**: Demonstrate virtual function behavior through base class pointers
 
-#### 1. Basic Functionality Testing
-```
-✅ Test 1: Adding Patients
-- Regular patient added successfully. ID: 1
-- Chronic patient added successfully. ID: 2
-- Regular patient added successfully. ID: 3
-
-✅ Test 2: Adding Doctors
-- Doctor added successfully. ID: 1
-- Doctor added successfully. ID: 2
-
-✅ Test 3: Scheduling Appointments
-- Appointment scheduled successfully. Appointment ID: 1
-- Appointment scheduled successfully. Appointment ID: 2
-- Appointment scheduled successfully. Appointment ID: 3
-
-✅ Test 4: Completing Appointments
-- Appointment 1 completed successfully.
-- Medical record added to patient history
-
-✅ Test 5: Canceling Appointments
-- Appointment 3 canceled successfully.
+```cpp
+// Creating different patient types
+cms.addPatient("Doan Trong Trung", 22);
+cms.addChronicPatient("Pham Van Hoa", 60, "Diabetes", "2025-08-10");
 ```
 
-#### 2. Inheritance and Polymorphism Testing
+**Output:**
 ```
-🔄 Polymorphism Demonstration:
-- Regular Patient Frequency: "As needed"
-- Chronic Patient Frequency: "Every 3 months (chronic condition)"
+=== ALL PATIENTS ===
 
-📋 Method Override Demonstration:
-- Patient 1 Type: "Regular Patient"
-- Patient 2 Type: "Chronic Patient"
+--- Patient 1 ---
+Patient Type: Regular Patient
+Name: Doan Trong Trung
+ID: 1
+Age: 22
+Appointment Frequency: As needed
+
+--- Patient 2 ---
+Patient Type: Chronic Patient
+Name: Pham Van Hoa
+ID: 2
+Age: 60
+Appointment Frequency: Every 3 months (chronic condition)
+Chronic Condition: Diabetes
+Last Checkup: 2025-08-10
 ```
 
-#### 3. Error Handling Testing
-```
-❌ Error Cases Successfully Handled:
-- Invalid Patient ID: "Error: Invalid patient ID."
-- Invalid Doctor ID: "Error: Invalid doctor ID."
-- Invalid Appointment ID: "Error: Appointment ID not found."
-- Double Cancellation: "Appointment 3 is already canceled."
+**What This Demonstrates**: Polymorphic behavior working correctly - same `displayInfo()` call produces different outputs based on actual object type.
+
+### Test Case 2: Appointment Scheduling with Virtual Method Override
+**Objective**: Show how ChronicPatient overrides appointment frequency logic
+
+```cpp
+Patient* regularPatient = cms.findPatient(1);
+Patient* chronicPatient = cms.findPatient(2);
+
+cout << "Regular patient frequency: " << regularPatient->getAppointmentFrequency() << endl;
+cout << "Chronic patient frequency: " << chronicPatient->getAppointmentFrequency() << endl;
 ```
 
-### Test Results Analysis
-- ✅ All core functionalities work correctly
-- ✅ Inheritance and polymorphism properly implemented
-- ✅ Error handling provides meaningful feedback
-- ✅ Memory management prevents leaks
-- ✅ Data relationships maintained consistently
+**Output:**
+```
+Regular patient frequency: As needed
+Chronic patient frequency: Every 3 months (chronic condition)
+```
+
+**What This Demonstrates**: Virtual function override working through base class pointers - different behaviors for different patient types.
+
+### Test Case 3: Complete System Integration
+**Objective**: Demonstrate full workflow from patient registration to billing
+
+**Operations Performed:**
+1. Add patients and doctors
+2. Schedule appointments
+3. Create prescriptions with medicines
+4. Generate bills automatically
+
+**Sample Output:**
+```
+Appointment scheduled successfully. Appointment ID: 1
+Prescription created. ID: 1 for Patient ID: 1
+Bill generated successfully. Bill ID: 1
+
+Bill ID: 1 | Patient ID: 1
+Consultation Fee: $20 | Medication Cost: $5
+Total Amount: $25 | Status: Unpaid
+```
+
+**What This Demonstrates**: Proper object relationships and data flow between all system components.
 
 ---
 
-## 🤖 AI Usage Documentation
+## Step 4: LLM Usage Documentation
 
-### How AI Assisted This Project
+### How I Used AI Assistance
 
-I used **Claude AI** to assist in multiple aspects of this project while ensuring I understood and wrote all the code myself:
+**1. Initial Class Structure Brainstorming**
+*Prompt*: "Help me identify the main classes needed for a small clinic management system with inheritance."
+*AI Response*: Suggested Patient as base class with specialized derived classes, plus supporting classes for Doctor, Appointment.
+*How I Used It*: Applied the Patient→ChronicPatient inheritance suggestion, added my own Medicine, Prescription, and Bill classes.
 
-#### 1. **Brainstorming and Planning**
-**Prompt Used:** *"Help me brainstorm methods and attributes for a Patient class in a clinic management system. What would be essential features?"*
+**2. Virtual Function Design**
+*Prompt*: "What methods should be virtual in a Patient class to demonstrate polymorphism?"
+*AI Response*: Recommended virtual methods for patient type identification and appointment frequency.
+*How I Used It*: Implemented `getPatientType()`, `getAppointmentFrequency()`, and `displayInfo()` as virtual methods.
 
-**AI Contribution:** Suggested core attributes like name, ID, age, medical history, and methods like addMedicalRecord(), displayInfo(). I adapted these suggestions to fit my specific design requirements.
+**3. Testing Strategy**
+*Prompt*: "How should I test inheritance and polymorphism in C++?"
+*AI Response*: Suggested creating objects through base class pointers and calling virtual methods.
+*How I Used It*: Developed comprehensive test cases showing polymorphic behavior and method overriding.
 
-#### 2. **Inheritance Design Consultation**
-**Prompt Used:** *"How should I implement inheritance for different types of patients in a clinic system? What methods should be virtual?"*
-
-**AI Contribution:** Recommended making appointment frequency and patient type as virtual methods, which I implemented as `getAppointmentFrequency()` and `getPatientType()`.
-
-#### 3. **Test Case Generation**
-**Prompt Used:** *"What test cases should I create to demonstrate OOP concepts in a clinic management system?"*
-
-**AI Contribution:** Suggested testing basic functionality, inheritance behavior, error handling, and polymorphism. I expanded these into comprehensive test functions with specific scenarios.
-
-#### 4. **Error Handling Strategies**
-**Prompt Used:** *"What error conditions should I handle in a clinic appointment scheduling system?"*
-
-**AI Contribution:** Identified invalid IDs, duplicate operations, and status conflicts. I implemented validation logic and meaningful error messages based on these suggestions.
-
-#### 5. **Code Structure Optimization**
-**Prompt Used:** *"How should I organize my C++ classes for better maintainability?"*
-
-**AI Contribution:** Suggested forward declarations, proper header organization, and separation of concerns. I applied these principles in my final implementation.
-
-### Ethical AI Usage
-- Used AI as a **brainstorming partner**, not a code generator
-- Always **understood and validated** AI suggestions before implementation
-- **Customized all suggestions** to fit my specific project requirements
-- **Maintained academic integrity** by writing original code
+**Ethical Usage**: Used AI for conceptual guidance only. All code implementation, logic design, and creative decisions were my original work.
 
 ---
 
-## 🚀 How to Compile and Run
+## Conclusion
 
-### Requirements
-- C++ compiler (g++, clang++, or Visual Studio)
-- C++11 or later standard
+This assignment successfully demonstrates mastery of object-oriented programming principles through a practical clinic management system:
 
-### Compilation
-```bash
-g++ -std=c++11 -o clinic_system main.cpp
-```
+### Technical Achievements
+- **Proper Inheritance**: Implemented meaningful Patient→ChronicPatient hierarchy
+- **Polymorphism**: Virtual functions enable different behaviors through same interface  
+- **5+ Classes**: System includes 7 interconnected classes with proper relationships
+- **Complete Functionality**: Full workflow from patient registration to billing
+- **Error Handling**: Comprehensive input validation and status checking
+- **Modern C++**: Uses override specifiers, const correctness, and RAII principles
 
-### Execution
-```bash
-./clinic_system
-```
+### OOP Principles Demonstrated
+1. **Inheritance**: Meaningful specialization for chronic patients
+2. **Polymorphism**: Runtime method binding through virtual functions
+3. **Encapsulation**: Proper access control with private/protected members
+4. **Abstraction**: Clean interfaces hiding implementation complexity
 
-### Expected Output
-The program will run comprehensive tests demonstrating all OOP features with detailed console output showing system operations and results.
+### System Capabilities
+The completed system handles patient management, appointment scheduling, prescription creation, medicine inventory, and automated billing - demonstrating real-world applicability of OOP concepts.
 
----
-
-
----
-
-*This project demonstrates practical application of Object-Oriented Programming principles in a real-world healthcare management scenario, showcasing the power of inheritance, polymorphism, and proper software design.*
+**Compilation**: `g++ -std=c++11 -o clinic 24110140_DoanTrongTrung_Week4_Assignment.cpp`
+**Execution**: System includes sample data and interactive menu for immediate testing.
